@@ -1,17 +1,29 @@
 use std::net::UdpSocket;
+use std::io::stdin;
 
 fn main() -> std::io::Result<()> {
-    let socket = UdpSocket::bind("127.0.0.1:8888")?;
+    let mut port = String::new();
+    stdin().read_line(&mut port)?;
+    port.pop();
+    let socket = UdpSocket::bind(format!("127.0.0.1:{port}"))?;
     let server = "127.0.0.1:8080";
 
-    socket.send_to(&[0x04, 0x05, 0x06], server)?;
+    loop {
+        let mut input = String::new();
+        stdin().read_line(&mut input)?;
+        input.pop();
+        let increment: u8 = match input.parse() {
+            Ok(i) => i,
+            Err(_) => {
+                println!("enter int from 0 to 255");
+                continue;
+            }
+        };
 
-    let mut buffer = [0; 1024];
-    let (len, _) = socket.recv_from(&mut buffer)?;
-    let result = &buffer[..len];
-    for byte in result {
-        print!("{} ", byte);
+        socket.send_to(&[increment], server).expect("cannot send msg");
+        
+        let mut answer = [0; 4];
+        socket.recv_from(&mut answer)?;
+        println!("{}", i32::from_be_bytes(answer));
     }
-    println!();
-    Ok(())
 }
