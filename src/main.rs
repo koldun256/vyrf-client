@@ -1,14 +1,15 @@
-use std::net::UdpSocket;
-use std::io::stdin;
+use std::thread;
+use std::sync::mpsc;
 use sfml::window::{Event, Style};
 use sfml::graphics::{Text, Font, RenderWindow, RenderTarget, Color};
+use udpclient::ServerMsg;
+
+pub mod udpclient;
 
 fn main() -> std::io::Result<()> {
-    let mut port = String::new();
-    stdin().read_line(&mut port)?;
-    port.pop();
-    let socket = UdpSocket::bind(format!("127.0.0.1:{port}"))?;
-    let server = "127.0.0.1:8080";
+    let socket = udpclient::open_udp_socket();
+    let (tx, rx) = mpsc::channel::<ServerMsg>();
+    println!("1");
     let mut window = RenderWindow::new((800, 600),
                              "SFML window",
                              Style::CLOSE,
@@ -21,29 +22,32 @@ fn main() -> std::io::Result<()> {
         }
     };
     let mut text = Text::new(&val.to_string(), &font, 16);
-    while window.is_open() {
-        while let Some(event) = window.poll_event() {
-            match event {
-                Event::Closed => window.close(),
-                Event::MouseButtonPressed { button: _, x: _, y: _ } => {
-                    println!("pressed!");
-                    socket.send_to(&[1], server).expect("cannot send msg");
-                    let mut answer = [0; 4];
-                    socket.recv_from(&mut answer)?;
-                    val = i32::from_be_bytes(answer);
-                },
-                _ => ()
+    thread::scope(|s| { 
+        s.spawn(|| udpclient::start_udp_thread(tx, &socket)); 
+        while window.is_open() {
+            while let Some(msg) = rx.try_iter().next() {
+                match msg {
+                    ServerMsg::Val(new_val) => val = new_val
+                }
             }
-            if event == Event::Closed { window.close(); }
-        }
-        window.set_active(true);
-        window.clear(Color::rgb(50, 200, 50));
-    
-        text.set_string(&val.to_string());
-        window.draw(&text);
-    
-        window.display();
+            while let Some(event) = window.poll_event() {
+                match event {
+                    Event::Closed => window.close(),
+                    Event::MouseButtonPressed { button: _, x: _, y: _ } => {
+                        udpclient::send_udp_msg(udpclient::ClientMsg::Increment, &socket);
+                    },
+                    _ => ()
+                }
+                if event == Event::Closed { window.close(); }
+            }
+            window.set_active(true);
+            window.clear(Color::rgb(50, 200, 50));
         
-    }
+            text.set_string(&val.to_string());
+            window.draw(&text);
+        
+            window.display();
+        }
+    });
     Ok(())
 }
