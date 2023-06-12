@@ -5,14 +5,24 @@ use std::thread;
 enum Error {
     InvalidMsg
 }
-pub enum ServerMsg { }
+pub enum ServerMsg { 
+    AddObject { id: u8, kind: u8 },
+    BindPlayer { id: u8 }
+}
 
 pub enum ClientMsg {
     Register
 }
 
 fn parse_msg(buf: &[u8; 10]) -> Result<ServerMsg, Error> {
-    Err(Error::InvalidMsg)
+    println!("{:?}", buf);
+    if buf[0] == 0 {
+        Ok(ServerMsg::AddObject { id: buf[1], kind: buf[2] })
+    } else if buf[0] == 1 {
+        Ok(ServerMsg::BindPlayer { id: buf[1] })
+    } else {
+        Err(Error::InvalidMsg)
+    }
 }
 
 fn gen_payload(msg: ClientMsg) -> [u8; 10] {
