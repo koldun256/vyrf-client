@@ -28,6 +28,6 @@ fn main() {
                 _ => ()
             }
         }
-        view.render();
+        view.render(&game);
     }
 }

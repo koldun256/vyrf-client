@@ -3,6 +3,8 @@ use sfml::SfBox;
 use sfml::window::Style;
 use sfml::graphics::{Text, Font, RenderWindow, RenderTarget, Color};
 
+use crate::game::Game;
+
 pub struct View {
     pub window: RenderWindow,
 }
@@ -22,9 +24,14 @@ impl View {
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, game: &Game) {
         self.window.set_active(true);
-        self.window.clear(Color::rgb(50, 200, 50));
+        self.window.clear(Color::BLACK);
+        for obj in &game.game_objects {
+            match obj {
+                crate::game::GameObjectKind::Player(player) => self.window.draw(&player.drawable)
+            }
+        }
         self.window.display();
     }
 }

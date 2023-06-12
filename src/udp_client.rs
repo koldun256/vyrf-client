@@ -6,7 +6,7 @@ enum Error {
     InvalidMsg
 }
 pub enum ServerMsg { 
-    AddObject { id: u8, kind: u8 },
+    AddObject { id: u8, kind: u8, x: u16, y: u16 },
     BindPlayer { id: u8 }
 }
 
@@ -17,7 +17,12 @@ pub enum ClientMsg {
 fn parse_msg(buf: &[u8; 10]) -> Result<ServerMsg, Error> {
     println!("{:?}", buf);
     if buf[0] == 0 {
-        Ok(ServerMsg::AddObject { id: buf[1], kind: buf[2] })
+        Ok(ServerMsg::AddObject { 
+            id: buf[1],
+            kind: buf[2],
+            x: buf[3] as u16 * 256 + buf[4] as u16,
+            y: buf[5] as u16 * 256 + buf[6] as u16
+        })
     } else if buf[0] == 1 {
         Ok(ServerMsg::BindPlayer { id: buf[1] })
     } else {
