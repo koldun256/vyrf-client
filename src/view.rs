@@ -28,9 +28,7 @@ impl View {
         self.window.set_active(true);
         self.window.clear(Color::BLACK);
         for obj in &game.game_objects {
-            match obj {
-                crate::game::GameObjectKind::Player(player) => self.window.draw(&player.drawable)
-            }
+            self.window.draw(obj.drawable());
         }
         self.window.display();
     }

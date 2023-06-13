@@ -2,11 +2,14 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::net::UdpSocket;
 use std::thread;
 
+use crate::game::vec2::Vec2;
+
 enum Error {
     InvalidMsg
 }
 pub enum ServerMsg { 
-    AddObject { id: u8, kind: u8, x: u16, y: u16 },
+    AddObject { id: u8, kind: u8, pos: Vec2 },
+    SetPosition { id: u8, pos: Vec2 },
     BindPlayer { id: u8 }
 }
 
@@ -20,11 +23,21 @@ fn parse_msg(buf: &[u8; 10]) -> Result<ServerMsg, Error> {
         Ok(ServerMsg::AddObject { 
             id: buf[1],
             kind: buf[2],
-            x: buf[3] as u16 * 256 + buf[4] as u16,
-            y: buf[5] as u16 * 256 + buf[6] as u16
+            pos: Vec2 {
+                x: i16::from_be_bytes([buf[3], buf[4]]),
+                y: i16::from_be_bytes([buf[5], buf[6]]),
+            }
         })
     } else if buf[0] == 1 {
         Ok(ServerMsg::BindPlayer { id: buf[1] })
+    } else if buf[0] == 2 {
+        Ok(ServerMsg::SetPosition { 
+            id: buf[1],
+            pos: Vec2 {
+                x: i16::from_be_bytes([buf[2], buf[3]]),
+                y: i16::from_be_bytes([buf[4], buf[5]]),
+            }
+        })
     } else {
         Err(Error::InvalidMsg)
     }
